@@ -15,14 +15,16 @@
 
 ``` flow
 st=>start: 开始
-e=>end: 结束
 op1=>operation: 启动 PyPoster
 op2=>operation: 指定博客目录
 op3=>operation: 填写博客信息
 op4=>operation: 预处理博客内容
 op5=>operation: 上传必要的图片
 op6=>operation: 图片 URL 替换
-op6=>operation: 开始新建或编辑博客
+op7=>operation: 新建或编辑博客
+e=>end: 结束
+
+st->op1->op2->op3->op4->op5->op6->op7->e
 ```
 
 
