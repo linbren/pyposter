@@ -13,23 +13,7 @@
 
 ## 简要工作流程
 
-<<<<<<< HEAD
 ![flow](tests/screenshots/flow.png)
-=======
-``` flow
-st=>start: 开始
-op1=>operation: 启动 PyPoster
-op2=>operation: 指定博客目录
-op3=>operation: 填写博客信息
-op4=>operation: 预处理博客内容
-op5=>operation: 上传必要的图片
-op6=>operation: 图片 URL 替换
-op7=>operation: 新建或编辑博客
-e=>end: 结束
-
-st->op1->op2->op3->op4->op5->op6->op7->e
-```
->>>>>>> ebb500ec89325ee7fe153b069808a4c2c0f332cc
 
 
 ## 安装 & 运行
@@ -52,13 +36,13 @@ st->op1->op2->op3->op4->op5->op6->op7->e
     1. `python3 pyposter_gui.py` 启动带有 GUI 的 PyPoster； 
     1. 点击**打开**按钮，选择存放博客的目录（如例子中给出的 `post_foo` 目录），然后根据提示，填写相应的信息后，点击**确定**按钮即可进行发布。
 
-    ![GUI](test/screenshots/pyposter_gui.png)
+    ![GUI](tests/screenshots/pyposter_gui.png)
 
 1. 命令行版本发布博客：
     1. `python3 pyposter.py` 启动 PyPoster；
     1. 根据提示填写信息，完成后即可发布；
     
-    ![Command](test/screenshots/command_mode.png)
+    ![Command](tests/screenshots/command_mode.png)
 
 ## 小小说明
 - 第一次发布完成后，会在博客目录下生成一个 `post.conf` 文件，它记录了发布成功后的博客的 `post_id` 和已经成功上传的图片名称。所以，还请不要删除这个配置文件。
@@ -84,4 +68,4 @@ st->op1->op2->op3->op4->op5->op6->op7->e
 - 如果有更好的类似工具，请推荐给我，多谢啦！
 
 ## 许可
-Licensed under the [MIT](LICENSE.md) license. 
+[PyPoster](https://github.com/ChrisLeeGit/pyposter) is licensed under the [MIT](LICENSE.md) license. 
