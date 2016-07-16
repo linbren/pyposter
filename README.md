@@ -24,12 +24,11 @@
     ├── blog.md（博客文档，可以使用你自己的文章标题命令）
     └── media（存放你在博客中引用的资源文件，如图片）
         └── foo.png （图片文件）
-
     ```
 
-4. 运行**PyPoster**，选择存放博客的目录（如例子中给出的 `post_foo` 目录），然后根据提示，填写相应的信息后，点击发布即可。
+4. 运行**PyPoster**，打开存放博客的目录（如例子中给出的 `post_foo` 目录），然后根据提示，填写相应的信息后，点击确定即可。
 
-![插图]()
+![插图](tests/screenshots/pyposter_gui.png)
 
 ## 依赖
 - [python-wordpress-xmlrpc](https://github.com/maxcutler/python-wordpress-xmlrpc)
