@@ -15,8 +15,12 @@ from tkinter import Frame, LabelFrame, OptionMenu, Listbox, Button, Entry, Label
 from tkinter.constants import *
 from tkinter.messagebox import showinfo
 from tkinter.filedialog import askdirectory
-from src.utils import config_logger
+from utils import config_logger
+from pyposter import PyPoster
 import logging
+import threading
+
+sys.path.append(os.path.curdir)
 
 # 字体配置
 FONT_DEFAULT = ('', 12, 'normal')

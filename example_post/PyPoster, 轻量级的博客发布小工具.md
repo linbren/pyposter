@@ -12,19 +12,7 @@
 - [x] 支持媒体文件（主要是图片）的自动上传功能；
 
 ## 简要工作流程
-
-``` flow
-st=>start: 开始
-e=>end: 结束
-op1=>operation: 启动 PyPoster
-op2=>operation: 指定博客目录
-op3=>operation: 填写博客信息
-op4=>operation: 预处理博客内容
-op5=>operation: 上传必要的图片
-op6=>operation: 图片 URL 替换
-op6=>operation: 开始新建或编辑博客
-```
-
+![flow](images/flow.png)
 
 ## 安装 & 运行
 - pass
@@ -45,7 +33,6 @@ op6=>operation: 开始新建或编辑博客
 
 ![插图](images/pyposter_gui.png)
 
-![测试](images/pdf.png)
 
 ## 依赖
 - [python-wordpress-xmlrpc](https://github.com/maxcutler/python-wordpress-xmlrpc)
