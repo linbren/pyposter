@@ -41,7 +41,7 @@ class MainWindow(Frame):
     def make_widgets(self):
         self.make_post_title_frame()
         self.make_server_frame()
-        self.make_operations_frame()
+        # self.make_operations_frame()
         self.make_options_frame()
         # 打开和确定
         Button(self, text='打开...', font=FONT_DEFAULT, command=self._open_dir).pack(side=LEFT, pady=5)
@@ -91,7 +91,7 @@ class MainWindow(Frame):
         Label(title_frm, text='文章标题：', font=FONT_DEFAULT).pack(side=LEFT)
         Entry(title_frm, textvariable=self._post_title, font=FONT_DEFAULT).pack(side=RIGHT, fill=BOTH, expand=YES)
 
-    def center_window(self, width=450, height=530):
+    def center_window(self, width=450, height=500):
         screen_width = self.master.winfo_screenwidth()
         screen_height = self.master.winfo_screenheight()
         x = (screen_width / 2) - (width / 2)
