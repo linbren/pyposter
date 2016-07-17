@@ -35,7 +35,7 @@ CONF_PATH = os.path.join(PYPOSTER_PATH, 'conf.pkl')
 LOG_PATH = os.path.join(PYPOSTER_PATH, 'log.txt')
 
 
-class Config(object):
+class ServerConfig(object):
     def __init__(self, rpc_address, username, password):
         self._rpc_address = rpc_address
         self._username = username
@@ -142,6 +142,11 @@ class PyPoster(object):
             p.id = self._client.call(NewPost(p))
             self._post_conf['post_id'] = p.id
 
+        # 记录下文章的标题，分类和标签信息，可能会用到
+        self._post_conf['category'] = category
+        self._post_conf['tags'] = tags
+        self._post_conf['title'] = title
+
         # 最后要保存配置
         self._save_post_conf(blog_path)
         logging.info('Post operation: complete!')
@@ -181,7 +186,7 @@ class PyPoster(object):
         post = WordPressPost()
         post.title = title
         post.content = content
-        post.post_status = 'publish'
+        post.post_status = 'draft'
         self._add_category(category, post)
         self._add_tags(post, tags)
 
@@ -241,7 +246,8 @@ class PyPoster(object):
         if os.path.exists(conf_path):
             self._post_conf = load(open(conf_path))
         else:
-            self._post_conf = {'post_id': None, 'posted_images': dict()}
+            self._post_conf = {'post_id': None, 'posted_images': dict(),
+                               'category': '', 'tags': '', 'title': ''}
 
     def _save_post_conf(self, blog_path):
         logging.info('Save post config')
@@ -301,7 +307,7 @@ def main():
         wp = PyPoster(xml_rpc_address, username, password)
 
         # 保存配置
-        save_config(Config(xml_rpc_address, username, password))
+        save_config(ServerConfig(xml_rpc_address, username, password))
 
     while True:
         if 'quit' in input('输入"quit"退出，回车键继续：'):

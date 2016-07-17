@@ -7,7 +7,7 @@
 # Date   : 16-7-16
 # Version: 0.1
 # Description: pyposter_gui.
-
+import json
 import os
 import sys
 # from gettext import gettext as _
@@ -18,7 +18,7 @@ from tkinter.scrolledtext import ScrolledText
 from tkinter.messagebox import showinfo, showerror, askyesno
 from tkinter.filedialog import askdirectory
 from utils import config_logger
-from pyposter import PyPoster, PYPOSTER_PATH, LOG_PATH, Config, load_config, save_config
+from pyposter import PyPoster, PYPOSTER_PATH, LOG_PATH, ServerConfig, load_config, save_config
 import logging
 import threading
 
@@ -75,6 +75,7 @@ class PyPosterGUI(Frame):
         self._password = StringVar(self)
         self._operation = StringVar(self)
         self._blog_path = StringVar(self)
+        self._category_name = StringVar(self)
         self._pyposter = None
         self._categories = None
         self.make_widgets()
@@ -93,9 +94,20 @@ class PyPosterGUI(Frame):
         self.make_server_frame()
         # self.make_operations_frame()
         self.make_options_frame()
-        # 打开和确定
-        Button(self._function_frame, text='打开...', font=FONT_DEFAULT, command=self._open_dir).pack(side=LEFT, pady=5)
-        Button(self._function_frame, text='确定', font=FONT_DEFAULT, command=self._confirm).pack(side=RIGHT, pady=5)
+
+        # 三个按钮
+        btn_frm = Frame(self._function_frame)
+        btn_frm.pack(side=BOTTOM, fill=X)
+
+        # TO-DO: 添加按钮
+        buttons = [
+            ('添加', self._add_dir, LEFT),
+            ('载入', self._open_dir, LEFT),
+            ('确认', self._confirm, RIGHT)
+        ]
+
+        for col, btn in enumerate(buttons):
+            Button(btn_frm, text=btn[0], font=FONT_DEFAULT, command=btn[1]).pack(fill=X, side=btn[2], padx=5, pady=5)
 
         # 日志显示
         self._output_frame = OutputFrame(self)
@@ -110,17 +122,22 @@ class PyPosterGUI(Frame):
         options_frm.pack(fill=X)
         # 博客标签
         Label(options_frm, text='标签 (逗号分隔)：', font=FONT_DEFAULT).grid(row=0, column=0, sticky=W, padx=5)
-        Entry(options_frm, textvariable=self._tags, font=FONT_DEFAULT, width=30).grid(row=0, column=1, sticky=E, padx=5)
+        Entry(options_frm, textvariable=self._tags, font=FONT_DEFAULT, width=30).grid(row=0, column=1, columnspan=2,
+                                                                                      sticky=E, padx=5)
         # 文章分类
-        Label(options_frm, text='选择文章分类：', font=FONT_DEFAULT).grid(row=1, column=0, sticky=W, padx=5)
-        Button(options_frm, text='更新分类', font=FONT_DEFAULT, command=self._update_category).grid(row=1, column=1, sticky=E, padx=5)
-
+        Label(options_frm, text='文章分类：', font=FONT_DEFAULT).grid(row=1, column=0, sticky=W, padx=5)
+        Entry(options_frm, textvariable=self._category_name, width=19, font=FONT_DEFAULT).grid(row=1, column=1, sticky=E)
+        Button(options_frm, text='获取分类', font=FONT_DEFAULT, command=self._update_category).grid(row=1,
+                                                                                                column=2,
+                                                                                                sticky=E,
+                                                                                                padx=5)
         cat_frm = Frame(options_frm)
-        cat_frm.grid(row=2, column=0, columnspan=2, sticky=W, padx=5, pady=2)
+        cat_frm.grid(row=2, column=0, columnspan=3, sticky=W, padx=5, pady=2)
 
         vs = Scrollbar(cat_frm)
         vs.pack(side=RIGHT, fill=Y)
         self._categories = Listbox(cat_frm, width=44, font=FONT_DEFAULT, yscrollcommand=vs.set)
+        self._categories.bind('<<ListboxSelect>>', self._on_item_select)
         vs.config(command=self._categories.yview)
         self._categories.pack(side=LEFT, fill=BOTH, expand=YES)
 
@@ -172,8 +189,16 @@ class PyPosterGUI(Frame):
         y = (screen_height / 2) - (height / 2)
         self.master.geometry('%dx%d+%d+%d' % (width, height, x, y))
 
+    def _add_dir(self):
+        self._blog_path.set(askdirectory(title='添加博客目录...'))
+
     def _open_dir(self):
-        blog_path = askdirectory()
+        blog_path = self._blog_path.get()
+
+        if not os.path.isdir(blog_path):
+            logging.error('No such directory: {}'.format(blog_path))
+            showerror('错误！', '不存在的目录：{}'.format(blog_path))
+            return
 
         # 获取目录下的博客标题等信息
         blog_file = [x for x in os.listdir(blog_path)
@@ -181,8 +206,22 @@ class PyPosterGUI(Frame):
                      not os.path.isdir(os.path.join(blog_path, x))]
 
         if len(blog_file) == 1:
-            self._post_title.set(os.path.splitext(blog_file[0])[0])
+            # 查看有没有配置文件
+            conf = None
+            post_conf_path = os.path.join(blog_path, 'post.conf')
+            if os.path.exists(post_conf_path):
+                with open(post_conf_path, 'r') as f:
+                    conf = json.load(f)
+
+            # 填充标题、路径、标签、分类等
             self._blog_path.set(blog_path)
+            self._post_title.set(os.path.splitext(blog_file[0])[0])
+            if conf:
+                self._post_title.set(conf['title']) if conf['title'] != '' else None
+                self._tags.set(conf['tags'])
+                self._category_name.set(conf['category'])
+            else:
+                pass
         else:
             logging.error('Invalid blog path')
             showerror('提示', '无效的博客目录！')
@@ -201,7 +240,7 @@ class PyPosterGUI(Frame):
 
     def _post(self):
         post_id = self._pyposter.post(self._post_title.get(),
-                                      self._categories.get('active'),
+                                      self._category_name.get(),
                                       self._tags.get(),
                                       self._blog_path.get())
         if post_id:
@@ -232,22 +271,32 @@ class PyPosterGUI(Frame):
         return all([self._rpc_addr.get(), self._username.get(), self._password.get()])
 
     def _load_config(self):
-        config = load_config()
-        if config:
-            assert isinstance(config, Config)
-            self._rpc_addr.set(config.rpc_address)
-            self._username.set(config.username)
-            self._password.set(config.password)
+        # 服务器信息
+        server_config = load_config()
+        if server_config:
+            assert isinstance(server_config, ServerConfig)
+            self._rpc_addr.set(server_config.rpc_address)
+            self._username.set(server_config.username)
+            self._password.set(server_config.password)
 
     def _save_config(self):
-        save_config(Config(self._rpc_addr.get(),
-                           self._username.get(),
-                           self._password.get()))
+        save_config(ServerConfig(self._rpc_addr.get(),
+                                 self._username.get(),
+                                 self._password.get()))
 
     def _on_closing(self):
         if self._is_server_info_valid():
             self._save_config()
         self.quit()
+
+    def _get_selected_category(self):
+        if self._categories.size() > 0:
+            return self._categories.get(self._categories.curselection())
+        else:
+            return ''
+
+    def _on_item_select(self, event):
+        self._category_name.set(self._get_selected_category())
 
 
 def main():
