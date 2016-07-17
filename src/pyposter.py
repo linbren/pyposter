@@ -13,7 +13,7 @@ import os
 import re
 from wordpress_xmlrpc import *
 from wordpress_xmlrpc.methods.media import UploadFile
-from wordpress_xmlrpc.methods.posts import NewPost, EditPost
+from wordpress_xmlrpc.methods.posts import NewPost, EditPost, GetPost
 from wordpress_xmlrpc.methods.users import GetUserInfo
 from wordpress_xmlrpc.methods.taxonomies import *
 from utils import config_logger
@@ -107,6 +107,12 @@ class PyPoster(object):
             return list(map(lambda x: x.name,
                             self._client.call(GetTerms('category'))))
 
+    def get_post(self, post_id):
+        try:
+            return self._client.call(GetPost(post_id))
+        except Exception as e:
+            logging.error(str(e))
+
     def post(self, title, category, tags, blog_path):
         logging.info('Prepare to post: {}'.format(title))
         blog_path = os.path.abspath(blog_path)
@@ -129,14 +135,18 @@ class PyPoster(object):
         if self._has_post():
             # 博客已经发布过了，此时只要编辑即可
             logging.info('Edit post: {}({})'.format(title, self._post_conf['post_id']))
+            p.id = self._post_conf['post_id']
             self._client.call(EditPost(self._post_conf['post_id'], p))
         else:
             logging.info('New post: {}'.format(title))
-            self._post_conf['post_id'] = self._client.call(NewPost(p))
+            p.id = self._client.call(NewPost(p))
+            self._post_conf['post_id'] = p.id
 
         # 最后要保存配置
         self._save_post_conf(blog_path)
         logging.info('Post operation: complete!')
+
+        return p.id
 
     @staticmethod
     def _process_blog_content(content, image_urls):
