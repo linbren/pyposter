@@ -186,7 +186,9 @@ class PyPoster(object):
         post = WordPressPost()
         post.title = title
         post.content = content
-        post.post_status = 'draft'
+
+        # 发布状态
+        post.post_status = 'publish'
         self._add_category(category, post)
         self._add_tags(post, tags)
 
