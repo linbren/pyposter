@@ -15,19 +15,21 @@ def config_logger(log_file='log.txt', level=logging.INFO):
     """
     日志模块配置
     """
-    fmt = '[%(asctime)s][%(module)-s][line %(lineno)-d][%(levelname)s] %(message)s'
+    file_fmt = '[%(asctime)s][%(module)-s][line %(lineno)-d][%(levelname)s] %(message)s'
     datefmt = '%m-%d %H:%M:%S'
 
     logging.basicConfig(
         level=level,
-        format=fmt,
+        format=file_fmt,
         datefmt=datefmt,
         filename=log_file,
         filemode='a')
 
     console = logging.StreamHandler()
     console.setLevel(level)
-    formatter = logging.Formatter(fmt=fmt,
+
+    console_fmt = '%(message)s'
+    formatter = logging.Formatter(fmt=console_fmt,
                                   datefmt=datefmt)
     console.setFormatter(formatter)
     logging.getLogger('').addHandler(console)
