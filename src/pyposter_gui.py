@@ -141,6 +141,11 @@ class MainWindow(Frame):
             self._init_pyposter()
 
         if self._pyposter:
+            if not all([self._post_title.get(),
+                        self._blog_path.get()]):
+                showerror('提示', '博客信息不完整，需要标题和博客路径！')
+                return
+
             self._pyposter.post(self._post_title.get(),
                                 self._categories.get('active'),
                                 self._tags.get(),
