@@ -43,6 +43,7 @@ class MainWindow(Frame):
         self._load_config()
         self.pack(fill=BOTH, expand=YES, padx=10, pady=10)
         self.center_window()
+        self.master.protocol('WM_DELETE_WINDOW', self._on_closing)
 
     def make_widgets(self):
         self.make_post_info_frame()
@@ -163,18 +164,17 @@ class MainWindow(Frame):
                 self._categories.insert('end', name)
 
     def _init_pyposter(self):
-        if not all([self._rpc_addr.get(),
-                    self._username.get(),
-                    self._password.get()]):
+        if not self._is_server_info_valid():
             logging.error('Invalid parameters for PyPoster')
             showerror('错误！', '服务器信息填写不完整！')
         else:
             self._pyposter = PyPoster(self._rpc_addr.get(),
                                       self._username.get(),
                                       self._password.get())
-            save_config(Config(self._rpc_addr.get(),
-                               self._username.get(),
-                               self._password.get()))
+            self._save_config()
+
+    def _is_server_info_valid(self):
+        return all([self._rpc_addr.get(), self._username.get(), self._password.get()])
 
     def _load_config(self):
         config = load_config()
@@ -183,6 +183,16 @@ class MainWindow(Frame):
             self._rpc_addr.set(config.rpc_address)
             self._username.set(config.username)
             self._password.set(config.password)
+
+    def _save_config(self):
+        save_config(Config(self._rpc_addr.get(),
+                           self._username.get(),
+                           self._password.get()))
+
+    def _on_closing(self):
+        if self._is_server_info_valid():
+            self._save_config()
+        self.quit()
 
 
 def main():
