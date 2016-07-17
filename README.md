@@ -22,8 +22,9 @@
 ## 安装 & 运行
 **Note：** 待功能稳定后，可能会发布打包好的版本，这样使用会更加方便。以下是在 Ubuntu 16.04 下测试安装的步骤，其他系统类似。
 
+- 请 [下载](https://github.com/ChrisLeeGit/pyposter/releases) 最新的 pyposter 项目代码；
 - 确保系统安装好 Python 3 运行环境；
-- 安装 `requirements.txt` 中的依赖库：`pip3 install -r requirements.txt`；
+- 解压 pyposter 源码包，并安装其中的 `requirements.txt` 中列出的依赖库：`pip3 install -r requirements.txt`；
 - 进入 `src` 目录，运行 PyPoster：
     - `python3 pyposter.py`：进入 PyPoster 命令行交互模式；
     - `python3 pyposter_gui.py`：打开带有图形界面的 PyPoster。
@@ -47,10 +48,10 @@
         1. 方式一：在路径框中手动填写博客路径；
         1. 方式二：点击左下角的**添加**按钮，选择博客所在目录。
         
-    1. 载入博客文档（如果使用方式二添加，则会自动载入）：点击**载入**按钮，程序会自动加载博客目录（包括可能存在的配置），然后自动填充诸如标题、分类、标签等信息；
+    1. 载入博客文档（如果使用方式二添加，则会自动载入）：点击 `载入` 按钮，程序会自动加载博客目录（包括可能存在的配置），然后自动填充诸如标题、分类、标签等信息；
     1. 接下来，填写服务器信息：XML-RPC 地址，你的网站登录名和密码；
-    1. 编辑相应的标签（多个标签使用英文逗号隔开）和博客分类等信息；你也可以点击按钮**获取分类**，得到你的博客网站上所有分类，然后从中选择目录。
-    1. 最后，待一切填写完毕，点击**确定**按钮，即可开始发布。可以在右侧的日志输出框看到详细的过程。博客发布完成后，会弹出提示框。
+    1. 编辑相应的标签（多个标签使用英文逗号隔开）和博客分类等信息；你也可以点击按钮 `获取分类`，得到你的博客网站上所有分类，然后从中选择目录。
+    1. 最后，待一切填写完毕，点击 `确定`按钮，即可开始发布。可以在右侧的日志输出框看到详细的过程。博客发布完成后，会弹出提示框。
 
     ![准备阶段](tests/screenshots/pyposter_gui_prepare.png)
     ![正式发布](tests/screenshots/pyposter_gui_post.png)
@@ -78,13 +79,13 @@
     ```
 
 ## 依赖
-- [python-wordpress-xmlrpc](https://github.com/maxcutler/python-wordpress-xmlrpc)
-- [Python Cryptography Toolkit (pycrypto)](https://github.com/dlitz/pycrypto)
+- [python-wordpress-xmlrpc](https://github.com/maxcutler/python-wordpress-xmlrpc);
+- [Python Cryptography Toolkit (pycrypto)](https://github.com/dlitz/pycrypto);
 
 ## 改进
 **如果你对这个小工具感兴趣，并且愿意帮助完善的话，那是再好不过啦 :)**
 
-- 如果觉得有什么好的想法或者改进建议，请在 [issues](https://github.com/ChrisLeeGit/pyposter/issues)　中提出；
+- 如果觉得有什么好的想法或者改进建议，请在 [issues](https://github.com/ChrisLeeGit/pyposter/issues) 中提出；
 - 也可以根据需要扩展功能；
 - 此外，如果觉得代码写太烂，不妨帮忙重构；毕竟本人只是业余程序员，请见谅；
 - 如果有不错的小工具，也不妨推荐给我，多谢啦！我喜欢自动化的小工具，可以解放双手，节约时间。
