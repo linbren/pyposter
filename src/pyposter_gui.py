@@ -7,6 +7,7 @@
 # Date   : 16-7-16
 # Version: 0.1
 # Description: pyposter_gui.
+
 import json
 import os
 import sys
@@ -35,15 +36,9 @@ class OutputFrame(LabelFrame):
         self._output = ScrolledText(self, font=FONT_LOG, fg='green')
         self._output.pack(fill=BOTH, expand=YES, padx=5, pady=5)
         self.config(text=text, font=FONT_DEFAULT)
-        self._output.config(state=DISABLED)
-        self._max_line_count = 50
         self.pack(side=RIGHT, fill=Y, expand=YES, padx=5, pady=5)
 
     def write(self, text):
-        if self._get_line_count() > self._max_line_count:
-            # delete the first line
-            self._clear()
-
         self._output.config(state=NORMAL)
         self._output.insert(END, '{}'.format(text))
         self._output.see(END)
@@ -191,6 +186,7 @@ class PyPosterGUI(Frame):
 
     def _add_dir(self):
         self._blog_path.set(askdirectory(title='添加博客目录...'))
+        self._open_dir()
 
     def _open_dir(self):
         blog_path = self._blog_path.get()
@@ -290,10 +286,9 @@ class PyPosterGUI(Frame):
         self.quit()
 
     def _get_selected_category(self):
-        if self._categories.size() > 0:
+        try:
             return self._categories.get(self._categories.curselection())
-        else:
-            return ''
+        except: return ''
 
     def _on_item_select(self, event):
         self._category_name.set(self._get_selected_category())
