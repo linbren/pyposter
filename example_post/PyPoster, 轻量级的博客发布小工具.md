@@ -62,10 +62,11 @@
 ## 依赖
 - [python-wordpress-xmlrpc](https://github.com/maxcutler/python-wordpress-xmlrpc)
 
-## 贡献
+## 改进
 - 可以提交 issue，帮助改进，谢谢；
-- 可以根据需要，扩展功能；
-- 如果有更好的类似工具，请推荐给我，多谢啦！
+- 可以根据自己的需要，扩展功能；
+- 如果觉得代码太烂，不妨帮忙重构吧，毕竟本人只是业余程序猿，见谅；
+- 如果有类似的更好的工具，请推荐给我，多谢啦！
 
 ## 许可
 [PyPoster](https://github.com/ChrisLeeGit/pyposter) is licensed under the [MIT](LICENSE.md) license. 

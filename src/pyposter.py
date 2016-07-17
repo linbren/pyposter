@@ -10,17 +10,77 @@
 import logging
 import mimetypes
 import os
-from xmlrpc.client import ProtocolError
 import re
 from wordpress_xmlrpc import *
 from wordpress_xmlrpc.methods.media import UploadFile
 from wordpress_xmlrpc.methods.posts import NewPost, EditPost
+from wordpress_xmlrpc.methods.users import GetUserInfo
 from wordpress_xmlrpc.methods.taxonomies import *
 from utils import config_logger
 from json import load, dump
+from pickle import load as p_load, dump as p_dump
 import sys
+from Crypto.Cipher import AES
 
-sys.path.append(os.path.curdir)
+
+# 获取脚本所在目录
+PYPOSTER_PATH = os.path.split(os.path.realpath(__file__))[0]
+
+sys.path.append(PYPOSTER_PATH)
+
+# PyPoster 配置文件路径
+CONF_PATH = os.path.join(PYPOSTER_PATH, 'conf.pkl')
+
+# 指定日志输出路径
+LOG_PATH = os.path.join(PYPOSTER_PATH, 'log.txt')
+
+
+class Config(object):
+    def __init__(self, rpc_address, username, password):
+        self._rpc_address = rpc_address
+        self._username = username
+        self._password = self._encrypt(password)
+
+    @staticmethod
+    def _encrypt(password):
+        return AES.new(b'pyposter' * 2, AES.MODE_CFB, b'pyposter' * 2).encrypt(password)
+
+    @staticmethod
+    def _decrypt(password):
+        return AES.new(b'pyposter' * 2, AES.MODE_CFB, b'pyposter' * 2).decrypt(password)
+
+    @property
+    def rpc_address(self):
+        return self._rpc_address
+
+    @property
+    def username(self):
+        return self._username
+
+    @property
+    def password(self):
+        return (self._decrypt(self._password)).decode()
+
+    def __str__(self):
+        return 'rpc: {}\n' \
+               'username: {}\n' \
+               'password: {}\n'.format(self._rpc_address, self._username, self._password)
+
+
+def load_config():
+    # logging.info('Load pyposter config')
+    if os.path.exists(CONF_PATH):
+        with open(CONF_PATH, 'rb') as f:
+            return p_load(f)
+
+
+def save_config(config):
+    # logging.info('Save pyposter config')
+    if not config:
+        return
+
+    with open(CONF_PATH, 'wb') as f:
+        p_dump(config, f)
 
 
 class PyPoster(object):
@@ -37,8 +97,10 @@ class PyPoster(object):
     def login(self):
         try:
             self._client = Client(self._rpc_addr, self._username, self._password)
+            print('Hello, {}！'.format(self._client.call(GetUserInfo())))
         except Exception as e:
             logging.error(str(e))
+            sys.exit(1)
 
     def get_category_names(self):
         if isinstance(self._client, Client):
@@ -127,6 +189,10 @@ class PyPoster(object):
         all_tags = self._client.call(GetTerms('post_tag'))
         tags_text = map(lambda x: x.strip(), tags.split(','))
         for tag_text in tags_text:
+            # Bug fix: 空的 tag 不要添加
+            if tag_text == '':
+                continue
+
             logging.info('Add tag: {}'.format(tag_text))
             # 找 tag_text， 如果存在则无需创建，否则需要创建新的tag
             tag = [x for x in all_tags if x.name == tag_text]
@@ -209,11 +275,23 @@ def main():
     # 命令行模式
     from getpass import getpass
     print('>{} 欢迎使用 PyPoster！ {}<'.format('*' * 10, '*' * 10))
-    xml_rpc_address = input('xmlrpc 地址：')
-    username = input('用户名：')
-    password = getpass('密码：')
 
-    wp = PyPoster(xml_rpc_address, username, password)
+    wp = None
+
+    # 如果存在配置文件，则无需输入
+    conf = load_config(LOG_PATH)
+    if conf:
+        if not input('检查到服务器配置，是否需要重新配置？[Y(es)/N(o)]').lower() in ('y', 'yes'):
+            wp = PyPoster(conf.rpc_address, conf.username, conf.password)
+
+    if not wp:
+        xml_rpc_address = input('xmlrpc 地址：')
+        username = input('用户名：')
+        password = getpass('密码：')
+        wp = PyPoster(xml_rpc_address, username, password)
+
+        # 保存配置
+        save_config(Config(xml_rpc_address, username, password))
 
     while True:
         if 'quit' in input('输入"quit"退出，回车键继续：'):

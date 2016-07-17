@@ -16,11 +16,11 @@ from tkinter.constants import *
 from tkinter.messagebox import showinfo, showerror
 from tkinter.filedialog import askdirectory
 from utils import config_logger
-from pyposter import PyPoster
+from pyposter import PyPoster, PYPOSTER_PATH, LOG_PATH, Config, load_config, save_config
 import logging
 import threading
 
-sys.path.append(os.path.curdir)
+sys.path.append(PYPOSTER_PATH)
 
 # 字体配置
 FONT_DEFAULT = ('', 12, 'normal')
@@ -40,6 +40,7 @@ class MainWindow(Frame):
         self._pyposter = None
         self._categories = None
         self.make_widgets()
+        self._load_config()
         self.pack(fill=BOTH, expand=YES, padx=10, pady=10)
         self.center_window()
 
@@ -166,10 +167,21 @@ class MainWindow(Frame):
             self._pyposter = PyPoster(self._rpc_addr.get(),
                                       self._username.get(),
                                       self._password.get())
+            save_config(Config(self._rpc_addr.get(),
+                               self._username.get(),
+                               self._password.get()))
+
+    def _load_config(self):
+        config = load_config()
+        if config:
+            assert isinstance(config, Config)
+            self._rpc_addr.set(config.rpc_address)
+            self._username.set(config.username)
+            self._password.set(config.password)
 
 
 def main():
-    config_logger()
+    config_logger(LOG_PATH)
     app = Tk()
     app.title('PyPoster，博客发布小工具')
     app.resizable(width=False, height=False)
