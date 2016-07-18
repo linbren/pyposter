@@ -153,7 +153,7 @@ class PyPoster(object):
 
         if self._has_post():
             # 博客已经发布过了，此时只要编辑即可
-            logging.info('开始编辑博客额：{}({})'.format(title, self._post_conf['post_id']))
+            logging.info('开始编辑博客：{}({})'.format(title, self._post_conf['post_id']))
             p.id = self._post_conf['post_id']
             self._client.call(EditPost(self._post_conf['post_id'], p))
         else:
@@ -218,7 +218,7 @@ class PyPoster(object):
         post.content = content
 
         # 发布状态
-        post.post_status = 'draft'
+        post.post_status = 'publish'
         self._add_category(category, post)
         self._add_tags(post, tags)
 
@@ -232,7 +232,7 @@ class PyPoster(object):
         post.terms.append(post_category[0]) if len(post_category) == 1 else None
 
     def _add_tags(self, post, tags):
-        # 添加标签
+        # 添加标签，注意，标签是不分大小写的！！
         all_tags = self._client.call(GetTerms('post_tag'))
         tags_text = map(lambda x: x.strip(), tags.split(','))
         for tag_text in tags_text:
@@ -242,7 +242,7 @@ class PyPoster(object):
 
             logging.info('添加标签：{}'.format(tag_text))
             # 找 tag_text， 如果存在则无需创建，否则需要创建新的tag
-            tag = [x for x in all_tags if x.name == tag_text]
+            tag = [x for x in all_tags if x.name.lower() == tag_text.lower()]
 
             if len(tag) == 1:
                 post.terms.append(tag[0])

@@ -39,10 +39,10 @@ class OutputFrame(LabelFrame):
         self.pack(side=RIGHT, fill=Y, expand=YES, padx=5, pady=5)
 
     def write(self, text):
-        self._output.config(state=NORMAL)
+        # self._output.config(state=NORMAL)
         self._output.insert(END, '{}'.format(text))
         self._output.see(END)
-        self._output.config(state=DISABLED)
+        # self._output.config(state=DISABLED)
 
     def read(self):
         pass
