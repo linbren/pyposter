@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*-coding: utf-8-*-
 # Author : Chris
-# Blog   : http://blog.chriscabin.com
+# Blog   : http://post.chriscabin.com
 # GitHub : https://www.github.com/chrisleegit
 # File   : pyposter.py
 # Date   : 16-7-16
@@ -16,11 +16,12 @@ from wordpress_xmlrpc.methods.media import UploadFile
 from wordpress_xmlrpc.methods.posts import NewPost, EditPost, GetPost
 from wordpress_xmlrpc.methods.users import GetUserInfo
 from wordpress_xmlrpc.methods.taxonomies import *
-from utils import config_logger
+from utils import config_logger, get_checksum, get_text_checksum
 from json import load, dump
 from pickle import load as p_load, dump as p_dump
 import sys
 from Crypto.Cipher import AES
+from hashlib import md5
 
 
 # 获取脚本所在目录
@@ -28,8 +29,8 @@ PYPOSTER_PATH = os.path.split(os.path.realpath(__file__))[0]
 
 sys.path.append(PYPOSTER_PATH)
 
-# PyPoster 配置文件路径
-CONF_PATH = os.path.join(PYPOSTER_PATH, 'conf.pkl')
+# PyPoster 服务器配置文件路径
+SERVER_CONF_PATH = os.path.join(PYPOSTER_PATH, 'conf.pkl')
 
 # 指定日志输出路径
 LOG_PATH = os.path.join(PYPOSTER_PATH, 'log.txt')
@@ -67,19 +68,19 @@ class ServerConfig(object):
                'password: {}\n'.format(self._rpc_address, self._username, self._password)
 
 
-def load_config():
+def load_server_config():
     # logging.info('Load pyposter config')
-    if os.path.exists(CONF_PATH):
-        with open(CONF_PATH, 'rb') as f:
+    if os.path.exists(SERVER_CONF_PATH):
+        with open(SERVER_CONF_PATH, 'rb') as f:
             return p_load(f)
 
 
-def save_config(config):
+def save_server_config(config):
     # logging.info('Save pyposter config')
     if not config:
         return
 
-    with open(CONF_PATH, 'wb') as f:
+    with open(SERVER_CONF_PATH, 'wb') as f:
         p_dump(config, f)
 
 
@@ -92,9 +93,9 @@ class PyPoster(object):
         self._image_re = re.compile(r'(!\[.*?\]\()(.+?)(\))')
         self._client = None
         self._post_conf = None
-        self.login()
+        self._login()
 
-    def login(self):
+    def _login(self):
         try:
             self._client = Client(self._rpc_addr, self._username, self._password)
             print('Hello, {}！'.format(self._client.call(GetUserInfo())))
@@ -113,21 +114,39 @@ class PyPoster(object):
         except Exception as e:
             logging.error(str(e))
 
-    def post(self, title, category, tags, blog_path):
-        logging.info('Prepare to post: {}'.format(title))
-        blog_path = os.path.abspath(blog_path)
-        content = self._get_blog_content(blog_path)
+    def post(self, title, category, tags, post_path):
+
+        post_path = os.path.abspath(post_path)
+        post_dir = os.path.split(post_path)[0]
+
+        if not os.path.exists(post_path):
+            logging.error('No such file directory: {}'.format(post_path))
+            return
+
+        # 切换工作目录，哈哈，这个是必须这样的
+        old_cwd = os.getcwd()
+        os.chdir(post_dir)
+
+        # 读取博客内容
+        content = open(post_path).read()
         if not content:
             return
 
-        # 加载博客配置
-        self._load_post_conf(blog_path)
+        logging.info('Prepare to publish post: {}'.format(title))
 
-        # 处理图片
-        image_urls = self._process_images(blog_path, content)
+        # 加载博客配置
+        self._load_post_conf(post_dir)
+
+        # 处理博客中所有引用的本地图片
+        posted_images = self._process_images(content)
 
         # 处理博客文档内容
-        content = self._process_blog_content(content, image_urls)
+        content = self._process_post_content(content, posted_images)
+
+        # 检查是否确实需要发布
+        if not self._is_post_modified(title, category, tags, content):
+            logging.warning('Post is not modified yet, no need to publish. Bye!')
+            return None
 
         # 构建博客
         p = self._build_post(title, category, tags, content)
@@ -146,40 +165,42 @@ class PyPoster(object):
         self._post_conf['category'] = category
         self._post_conf['tags'] = tags
         self._post_conf['title'] = title
+        self._post_conf['checksum'] = get_text_checksum(content)
 
         # 最后要保存配置
-        self._save_post_conf(blog_path)
+        self._save_post_conf(post_dir)
         logging.info('Post operation: complete!')
+
+        # 切换回原来的工作目录
+        os.chdir(old_cwd)
 
         return p.id
 
     @staticmethod
-    def _process_blog_content(content, image_urls):
+    def _process_post_content(content, posted_images):
         # 将内容中所有的图片地址替换成实际的url
-        logging.info('Process blog content')
-        for x in image_urls.keys():
-            content = content.replace('images/{}'.format(x), image_urls[x])
+        logging.info('Process post content.')
+        for x in posted_images:
+            content = content.replace(x[0], x[-1])
+
         return content
 
-    def _process_images(self, blog_path, content):
-        images = self._get_all_images(content)
-        image_urls = dict(zip(images, images))
-        # 上传图片，并获取图片的地址
+    def _process_images(self, content):
+        # 提取文中引用到的图片
+        images = self._get_all_valid_images(content)
+
+        # 上传图片，成功上传图片后记录图片的md5值和实际URL
         for image in images:
-            if image in self._post_conf['posted_images'].keys():
-                # 重复图片不再上传了
-                image_urls[image] = self._post_conf['posted_images'][image]
-                continue
-
-            image_path = os.path.join(blog_path, 'images', image)
-            if os.path.exists(image_path):
-                url = self._upload_image(image, image_path)
-                # 上传成功的图片名称会添加到记录中，下次将不会继续上传。
+            # 过滤重复图片，避免重复上传（使用md5值)
+            checksum = get_checksum(image)
+            if checksum not in self._post_conf['posted_images']:
+                # 开始上传图片
+                url = self._upload_image(image)
                 if url:
-                    self._post_conf['posted_images'][image] = url
-                    image_urls[image] = url
+                    # 添加到已经上传的列表
+                    self._post_conf['posted_images'][checksum] = [image, url]
 
-        return image_urls
+        return self._post_conf['posted_images'].values()
 
     def _build_post(self, title, category, tags, content):
         logging.info('Build post: {}'.format(title))
@@ -188,7 +209,7 @@ class PyPoster(object):
         post.content = content
 
         # 发布状态
-        post.post_status = 'publish'
+        post.post_status = 'draft'
         self._add_category(category, post)
         self._add_tags(post, tags)
 
@@ -228,63 +249,56 @@ class PyPoster(object):
         # 如果存在，则返回post_id
         return True if self._post_conf['post_id'] else False
 
-    def _upload_image(self, imagename, path):
+    def _upload_image(self, imagename):
         # 准备数据
         data = dict()
-        data['name'] = imagename
-        data['type'] = mimetypes.guess_type(path)[0]
+        # 获取真实的文件名称，带有后缀名，不需要目录
+        data['name'] = os.path.split(imagename)[-1]
+        data['type'] = mimetypes.guess_type(imagename)[0]
         data['overwrite'] = 'false'
-        with open(path, 'rb') as img:
+        with open(imagename, 'rb') as img:
             data['bits'] = xmlrpc_client.Binary(img.read())
 
         logging.info('Upload image: {}'.format(imagename))
         x = self._client.call(UploadFile(data))
         return x['url'] if x else None
 
-    def _load_post_conf(self, blog_path):
+    def _load_post_conf(self, post_dir):
         logging.info('Loading post config')
         # 在博客路径下查找并加载配置文件，没有会自动生成
-        conf_path = os.path.join(blog_path, 'post.conf')
+        conf_path = os.path.join(post_dir, 'post.conf')
         if os.path.exists(conf_path):
             self._post_conf = load(open(conf_path))
         else:
             self._post_conf = {'post_id': None, 'posted_images': dict(),
-                               'category': '', 'tags': '', 'title': ''}
+                               'category': '', 'tags': '', 'title': '', 'checksum': ''}
 
-    def _save_post_conf(self, blog_path):
+    def _save_post_conf(self, post_dir):
         logging.info('Save post config')
         if self._post_conf:
-            with open(os.path.join(blog_path, 'post.conf'), 'w') as f:
+            with open(os.path.join(post_dir, 'post.conf'), 'w') as f:
                 dump(self._post_conf, f, indent=4)
 
-    def _get_all_images(self, content):
+    def _get_all_valid_images(self, content):
         assert isinstance(content, str)
-        # 查找博客文档中所有的图片名称，没有引用的图片将不会上传
-        return [os.path.split(x[1])[-1] for x in
-                self._image_re.findall(content)]
+        # 查找博客文档中所有引用的本地图片，会验证图片的有效性
+        images = self._image_re.findall(content)
+        result = [x[1] for x in images if os.path.exists(x[1])]
+        return result
 
-    @staticmethod
-    def _get_blog_content(blog_path):
-        if not isinstance(blog_path, str):
-            logging.error('Blog path cannot be None type')
+    def _is_post_modified(self, title, category, tags, content):
+        # 检查博客是否发生变动了
+        if title != self._post_conf['title']:
+            return True
 
-        if not os.path.exists(blog_path):
-            logging.error('No such file or directory: {}'.format(blog_path))
-            return None
+        if category != self._post_conf['category']:
+            return True
 
-        # 获取目录下的博客文件，只能有一个文件
-        # 记得把配置文件过滤掉
-        blog_path = os.path.abspath(blog_path)
-        files = [os.path.join(blog_path, x) for x in os.listdir(blog_path) if x != 'post.conf']
+        if tags != self._post_conf['tags']:
+            return True
 
-        # 只要文件，滤除目录
-        files = [x for x in files if not os.path.isdir(x)]
-
-        # 文件太多会出错
-        if len(files) == 1:
-            return open(files[0], 'r', encoding='utf-8').read()
-        else:
-            return None
+        if get_text_checksum(content) != self._post_conf['checksum']:
+            return True
 
 
 def main():
@@ -297,7 +311,7 @@ def main():
     wp = None
 
     # 如果存在配置文件，则无需输入
-    conf = load_config(LOG_PATH)
+    conf = load_server_config()
     if conf:
         if not input('检查到服务器配置，是否需要重新配置？[Y(es)/N(o)]').lower() in ('y', 'yes'):
             wp = PyPoster(conf.rpc_address, conf.username, conf.password)
@@ -309,18 +323,18 @@ def main():
         wp = PyPoster(xml_rpc_address, username, password)
 
         # 保存配置
-        save_config(ServerConfig(xml_rpc_address, username, password))
+        save_server_config(ServerConfig(xml_rpc_address, username, password))
 
     while True:
         if 'quit' in input('输入"quit"退出，回车键继续：'):
             break
         else:
-            blog_path = input('博客路径：')
-            blog_title = input('博客标题：')
+            post_path = input('博客路径：')
+            post_title = input('博客标题：')
             category = input('博客分类：')
             tags = input('博客标签（用逗号隔开多个）：')
             if input('确认发布？ [Y(es)/N(o)]').lower() in ['y', 'yes']:
-                wp.post(blog_title, category, tags, blog_path)
+                wp.post(post_title, category, tags, post_path)
 
 
 if __name__ == '__main__':
