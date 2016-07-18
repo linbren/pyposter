@@ -49,15 +49,19 @@
     1. 最后，待一切填写完毕，点击 `确定` 按钮，即可开始发布。可以在右侧的日志输出框看到详细的过程。博客发布完成后，会弹出提示框。
     1. 以下是运行截图（Ubuntu 16.04 系统）：
         - 加载相对路径博客：
+        
         ![相对路径](tests/screenshots/relative_post_path.png)
         
         - 加载绝对路径博客（点击 `添加` 按钮选择更方便）：
+        
         ![绝对路径](tests/screenshots/absolute_post_path.png)
         
         - 在 WordPress 网站上创建新的博客：
+        
         ![创建](tests/screenshots/pyposter_new_post.png)
         
         - 编辑已经存在的博客，并将本地修改同步到 WordPress 网站：
+        
         ![编辑](tests/screenshots/pyposter_edit_post.png)
 
 1. 命令行版本发布博客（感兴趣的话可以试试）：
