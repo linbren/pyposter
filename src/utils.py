@@ -9,6 +9,8 @@
 # Description: utilities here.
 
 import logging
+from hashlib import md5
+import os
 
 
 def config_logger(log_file='log.txt', level=logging.INFO):
@@ -35,9 +37,29 @@ def config_logger(log_file='log.txt', level=logging.INFO):
     logging.getLogger('').addHandler(console)
 
 
+def get_checksum(filename, blocksize=65536):
+    if os.path.exists(filename):
+        hasher = md5()
+        with open(filename, 'rb') as f:
+            buff = f.read(blocksize)
+            while len(buff) > 0:
+                hasher.update(buff)
+
+                # get next block
+                buff = f.read(blocksize)
+
+        return hasher.hexdigest()
+
+
+def get_text_checksum(text):
+    hasher = md5()
+    hasher.update(text.encode('utf-8'))
+    return hasher.hexdigest()
+
+
 def main():
     config_logger()
-    logging.info('Hello, world')
+    print(get_text_checksum(open('../README.md').read()))
 
 
 if __name__ == '__main__':
