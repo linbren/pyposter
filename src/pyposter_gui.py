@@ -13,13 +13,13 @@ import os
 import sys
 # from gettext import gettext as _
 import webbrowser
-from tkinter import Frame, LabelFrame, OptionMenu, Listbox, Scrollbar, Button, Entry, Label, Tk, StringVar, Toplevel
+from tkinter import Frame, LabelFrame, OptionMenu, Listbox, Scrollbar, Button, Entry, Label, Tk, StringVar
 from tkinter.constants import *
 from tkinter.scrolledtext import ScrolledText
 from tkinter.messagebox import showinfo, showerror, askyesno
 from tkinter.filedialog import askopenfilename
 from utils import config_logger
-from pyposter import PyPoster, PYPOSTER_PATH, LOG_PATH, ServerConfig, load_config, save_config
+from pyposter import PyPoster, PYPOSTER_PATH, LOG_PATH, ServerConfig, load_server_config, save_server_config
 import logging
 import threading
 
@@ -199,7 +199,7 @@ class PyPosterGUI(Frame):
 
         post_dir, post_filename = os.path.split(post_path)
 
-        # 添加一个切当的标题（注意不要替换掉已经填写过标题的框）
+        # 添加一个恰当的标题
         self._post_title.set(os.path.splitext(post_filename)[0])
 
         # 获取目录下的配置文件（如果没有，则无需加载）
@@ -262,7 +262,7 @@ class PyPosterGUI(Frame):
 
     def _load_config(self):
         # 服务器信息
-        server_config = load_config()
+        server_config = load_server_config()
         if server_config:
             assert isinstance(server_config, ServerConfig)
             self._rpc_addr.set(server_config.rpc_address)
@@ -270,9 +270,9 @@ class PyPosterGUI(Frame):
             self._password.set(server_config.password)
 
     def _save_config(self):
-        save_config(ServerConfig(self._rpc_addr.get(),
-                                 self._username.get(),
-                                 self._password.get()))
+        save_server_config(ServerConfig(self._rpc_addr.get(),
+                                        self._username.get(),
+                                        self._password.get()))
 
     def _on_closing(self):
         if self._is_server_info_valid():
