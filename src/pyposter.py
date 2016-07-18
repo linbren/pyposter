@@ -98,7 +98,7 @@ class PyPoster(object):
     def _login(self):
         try:
             self._client = Client(self._rpc_addr, self._username, self._password)
-            print('Hello, {}！'.format(self._client.call(GetUserInfo())))
+            print('登录成功！你好，{}！'.format(self._client.call(GetUserInfo())))
         except Exception as e:
             logging.error(str(e))
             sys.exit(1)
@@ -120,7 +120,7 @@ class PyPoster(object):
         post_dir = os.path.split(post_path)[0]
 
         if not os.path.exists(post_path):
-            logging.error('No such file directory: {}'.format(post_path))
+            logging.error('不存在的文件或目录：{}'.format(post_path))
             return
 
         # 切换工作目录，哈哈，这个是必须这样的
@@ -132,7 +132,7 @@ class PyPoster(object):
         if not content:
             return
 
-        logging.info('Prepare to publish post: {}'.format(title))
+        logging.info('准备发布博客：{}，请稍等...'.format(title))
 
         # 加载博客配置
         self._load_post_conf(post_dir)
@@ -145,7 +145,7 @@ class PyPoster(object):
 
         # 检查是否确实需要发布
         if not self._is_post_modified(title, category, tags, content):
-            logging.warning('Post is not modified yet, no need to publish. Bye!')
+            logging.warning('博客信息未更改，拒绝发布！再见～')
             return None
 
         # 构建博客
@@ -153,11 +153,11 @@ class PyPoster(object):
 
         if self._has_post():
             # 博客已经发布过了，此时只要编辑即可
-            logging.info('Edit post: {}({})'.format(title, self._post_conf['post_id']))
+            logging.info('开始编辑博客额：{}({})'.format(title, self._post_conf['post_id']))
             p.id = self._post_conf['post_id']
             self._client.call(EditPost(self._post_conf['post_id'], p))
         else:
-            logging.info('New post: {}'.format(title))
+            logging.info('开始新建博客：{}'.format(title))
             p.id = self._client.call(NewPost(p))
             self._post_conf['post_id'] = p.id
 
@@ -169,7 +169,7 @@ class PyPoster(object):
 
         # 最后要保存配置
         self._save_post_conf(post_dir)
-        logging.info('Post operation: complete!')
+        logging.info('博客发布完成！')
 
         # 切换回原来的工作目录
         os.chdir(old_cwd)
@@ -179,7 +179,7 @@ class PyPoster(object):
     @staticmethod
     def _process_post_content(content, posted_images):
         # 将内容中所有的图片地址替换成实际的url
-        logging.info('Process post content.')
+        logging.info('处理博客内容...')
         for x in posted_images:
             content = content.replace(x[0], x[-1])
 
@@ -188,6 +188,8 @@ class PyPoster(object):
     def _process_images(self, content):
         # 提取文中引用到的图片
         images = self._get_all_valid_images(content)
+
+        same_images = list()
 
         # 上传图片，成功上传图片后记录图片的md5值和实际URL
         for image in images:
@@ -199,11 +201,18 @@ class PyPoster(object):
                 if url:
                     # 添加到已经上传的列表
                     self._post_conf['posted_images'][checksum] = [image, url]
+            else:
+                # 检查是不是有可能存在不同路径但实际是同一张图片的情况
+                posted_image = self._post_conf['posted_images'][checksum]
+                if image != posted_image[0]:
+                    logging.warning('发现相同的图片文件：{} 与 {} 的 HASH 值相同！将会自动替换为同一 URL！'.format(image, posted_image[0]))
+                    same_images.append([image, posted_image[-1]])
 
-        return self._post_conf['posted_images'].values()
+        same_images.extend(list(self._post_conf['posted_images'].values()))
+        return same_images
 
     def _build_post(self, title, category, tags, content):
-        logging.info('Build post: {}'.format(title))
+        logging.info('构建博客：{}'.format(title))
         post = WordPressPost()
         post.title = title
         post.content = content
@@ -217,7 +226,7 @@ class PyPoster(object):
 
     def _add_category(self, category, post):
         # 添加目录
-        logging.info('Add category: {}'.format(category))
+        logging.info('添加目录：{}'.format(category))
         all_cats = self._client.call(GetTerms('category'))
         post_category = [x for x in all_cats if x.name == category]
         post.terms.append(post_category[0]) if len(post_category) == 1 else None
@@ -231,7 +240,7 @@ class PyPoster(object):
             if tag_text == '':
                 continue
 
-            logging.info('Add tag: {}'.format(tag_text))
+            logging.info('添加标签：{}'.format(tag_text))
             # 找 tag_text， 如果存在则无需创建，否则需要创建新的tag
             tag = [x for x in all_tags if x.name == tag_text]
 
@@ -259,14 +268,16 @@ class PyPoster(object):
         with open(imagename, 'rb') as img:
             data['bits'] = xmlrpc_client.Binary(img.read())
 
-        logging.info('Upload image: {}'.format(imagename))
+        logging.info('上传图片：{}'.format(imagename))
         x = self._client.call(UploadFile(data))
         return x['url'] if x else None
 
     def _load_post_conf(self, post_dir):
-        logging.info('Loading post config')
         # 在博客路径下查找并加载配置文件，没有会自动生成
         conf_path = os.path.join(post_dir, 'post.conf')
+
+        logging.info('加载博客配置文件{}'.format(conf_path))
+
         if os.path.exists(conf_path):
             self._post_conf = load(open(conf_path))
         else:
@@ -274,7 +285,7 @@ class PyPoster(object):
                                'category': '', 'tags': '', 'title': '', 'checksum': ''}
 
     def _save_post_conf(self, post_dir):
-        logging.info('Save post config')
+        logging.info('保存博客配置到文件：{}'.format(os.path.join(post_dir, 'post.conf')))
         if self._post_conf:
             with open(os.path.join(post_dir, 'post.conf'), 'w') as f:
                 dump(self._post_conf, f, indent=4)
