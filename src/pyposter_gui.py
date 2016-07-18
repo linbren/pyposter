@@ -17,7 +17,7 @@ from tkinter import Frame, LabelFrame, OptionMenu, Listbox, Scrollbar, Button, E
 from tkinter.constants import *
 from tkinter.scrolledtext import ScrolledText
 from tkinter.messagebox import showinfo, showerror, askyesno
-from tkinter.filedialog import askdirectory
+from tkinter.filedialog import askopenfilename
 from utils import config_logger
 from pyposter import PyPoster, PYPOSTER_PATH, LOG_PATH, ServerConfig, load_config, save_config
 import logging
@@ -69,7 +69,7 @@ class PyPosterGUI(Frame):
         self._username = StringVar(self)
         self._password = StringVar(self)
         self._operation = StringVar(self)
-        self._blog_path = StringVar(self)
+        self._post_path = StringVar(self)
         self._category_name = StringVar(self)
         self._pyposter = None
         self._categories = None
@@ -96,8 +96,8 @@ class PyPosterGUI(Frame):
 
         # TO-DO: 添加按钮
         buttons = [
-            ('添加', self._add_dir, LEFT),
-            ('载入', self._open_dir, LEFT),
+            ('添加', self._add_post_path, LEFT),
+            ('载入', self._load_post, LEFT),
             ('确认', self._confirm, RIGHT)
         ]
 
@@ -159,7 +159,8 @@ class PyPosterGUI(Frame):
         for index, row in enumerate(rows):
             Label(server_frame, text=row[0], font=FONT_DEFAULT).grid(row=index, column=0, sticky=W, padx=5, pady=2)
             Entry(server_frame, textvariable=row[1], show=row[2], font=FONT_DEFAULT, width=34).grid(row=index,
-                                                                                                    column=1, sticky=E, padx=5, pady=2)
+                                                                                                    column=1, sticky=E,
+                                                                                                    padx=5, pady=2)
 
     def make_post_info_frame(self):
         # 文章标题
@@ -167,7 +168,7 @@ class PyPosterGUI(Frame):
         info_frm.pack(side=TOP, fill=X, pady=5)
 
         rows = [
-            ('博客目录：', self._blog_path),
+            ('博客路径：', self._post_path),
             ('博客标题：', self._post_title)
         ]
 
@@ -184,43 +185,36 @@ class PyPosterGUI(Frame):
         y = (screen_height / 2) - (height / 2)
         self.master.geometry('%dx%d+%d+%d' % (width, height, x, y))
 
-    def _add_dir(self):
-        self._blog_path.set(askdirectory(title='添加博客目录...'))
-        self._open_dir()
+    def _add_post_path(self):
+        self._post_path.set(askopenfilename(title='添加博客路径...'))
+        self._load_post()
 
-    def _open_dir(self):
-        blog_path = self._blog_path.get()
+    def _load_post(self):
+        post_path = self._post_path.get()
 
-        if not os.path.isdir(blog_path):
-            logging.error('No such directory: {}'.format(blog_path))
-            showerror('错误！', '不存在的目录：{}'.format(blog_path))
+        if not os.path.exists(post_path):
+            logging.error('No such file {}'.format(post_path))
+            showerror('错误！', '文件不存在：{}'.format(post_path))
             return
 
-        # 获取目录下的博客标题等信息
-        blog_file = [x for x in os.listdir(blog_path)
-                     if x != 'post.conf' and
-                     not os.path.isdir(os.path.join(blog_path, x))]
+        post_dir, post_filename = os.path.split(post_path)
 
-        if len(blog_file) == 1:
-            # 查看有没有配置文件
-            conf = None
-            post_conf_path = os.path.join(blog_path, 'post.conf')
-            if os.path.exists(post_conf_path):
-                with open(post_conf_path, 'r') as f:
-                    conf = json.load(f)
+        # 添加一个切当的标题（注意不要替换掉已经填写过标题的框）
+        self._post_title.set(os.path.splitext(post_filename)[0])
 
-            # 填充标题、路径、标签、分类等
-            self._blog_path.set(blog_path)
-            self._post_title.set(os.path.splitext(blog_file[0])[0])
-            if conf:
-                self._post_title.set(conf['title']) if conf['title'] != '' else None
-                self._tags.set(conf['tags'])
-                self._category_name.set(conf['category'])
-            else:
-                pass
-        else:
-            logging.error('Invalid blog path')
-            showerror('提示', '无效的博客目录！')
+        # 获取目录下的配置文件（如果没有，则无需加载）
+        post_conf_path = os.path.join(post_dir, 'post.conf')
+        if not os.path.exists(post_conf_path):
+            logging.warning('No post config file found!')
+            return
+
+        # 加载配置文件，读取相关信息，并填充到相应的控件中
+        conf = json.load(open(post_conf_path))
+        if conf:
+            # 下面的做法可以防止已经填写好的信息被空的内容替代，那样是不好的。
+            self._post_title.set(conf['title']) if conf['title'] != '' else None
+            self._tags.set(conf['tags']) if conf['tags'] != '' else None
+            self._category_name.set(conf['category']) if conf['category'] != '' else None
 
     def _confirm(self):
         if not self._pyposter:
@@ -228,7 +222,7 @@ class PyPosterGUI(Frame):
 
         if self._pyposter:
             if not all([self._post_title.get(),
-                        self._blog_path.get()]):
+                        self._post_path.get()]):
                 showerror('提示', '博客文章信息不完整，至少需要合法的博客路径！')
                 return
             # 在后台线程中执行操作
@@ -238,7 +232,7 @@ class PyPosterGUI(Frame):
         post_id = self._pyposter.post(self._post_title.get(),
                                       self._category_name.get(),
                                       self._tags.get(),
-                                      self._blog_path.get())
+                                      self._post_path.get())
         if post_id:
             if askyesno('提示', '文章发布成功，需要在浏览器中打开吗？'):
                 x = self._pyposter.get_post(post_id)
