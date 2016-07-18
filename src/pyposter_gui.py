@@ -193,8 +193,8 @@ class PyPosterGUI(Frame):
         post_path = self._post_path.get()
 
         if not os.path.exists(post_path):
-            logging.error('No such file {}'.format(post_path))
-            showerror('错误！', '文件不存在：{}'.format(post_path))
+            logging.error('不存在的文件： {}'.format(post_path))
+            showerror('错误！', '不存在的文件：{}'.format(post_path))
             return
 
         post_dir, post_filename = os.path.split(post_path)
@@ -205,7 +205,7 @@ class PyPosterGUI(Frame):
         # 获取目录下的配置文件（如果没有，则无需加载）
         post_conf_path = os.path.join(post_dir, 'post.conf')
         if not os.path.exists(post_conf_path):
-            logging.warning('No post config file found!')
+            logging.warning('博客配置文件未找到，采用默认配置！')
             return
 
         # 加载配置文件，读取相关信息，并填充到相应的控件中
@@ -249,7 +249,7 @@ class PyPosterGUI(Frame):
 
     def _init_pyposter(self):
         if not self._is_server_info_valid():
-            logging.error('Invalid parameters for PyPoster')
+            logging.error('服务器信息填写不完整！')
             showerror('错误！', '服务器信息填写不完整！')
         else:
             self._pyposter = PyPoster(self._rpc_addr.get(),
@@ -298,7 +298,7 @@ def main():
     PyPosterGUI(app)
 
     config_logger(LOG_PATH)
-    logging.info('Start pyposter...')
+    logging.info('启动 PyPoster ...')
     app.mainloop()
 
 
