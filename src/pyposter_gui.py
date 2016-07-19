@@ -34,8 +34,8 @@ class OutputFrame(LabelFrame):
     def __init__(self, master=None, text="日志输出", cnf={}, **kw):
         super().__init__(master, cnf, **kw)
         self._output = ScrolledText(self, font=FONT_LOG, fg='green')
-        self._output.pack(fill=BOTH, expand=YES, padx=5, pady=5)
-        self.config(text=text, font=FONT_DEFAULT)
+        self._output.pack(fill=BOTH, expand=YES, padx=5)
+        self.config(text=text, font=FONT_DEFAULT, padx=5)
         self.pack(side=RIGHT, fill=Y, expand=YES, padx=5, pady=5)
 
     def write(self, text):
@@ -285,7 +285,10 @@ class PyPosterGUI(Frame):
         except: return ''
 
     def _on_item_select(self, event):
-        self._category_name.set(self._get_selected_category())
+        # fix bug here
+        cat = self._get_selected_category()
+        if cat != '':
+            self._category_name.set(cat)
 
 
 def main():

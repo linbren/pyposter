@@ -94,7 +94,7 @@
 
 ## 依赖
 - [python-wordpress-xmlrpc](https://github.com/maxcutler/python-wordpress-xmlrpc);
-- [Python Cryptography Toolkit (pycrypto)](https://github.com/dlitz/pycrypto);
+- [Python Cryptography Toolkit (pycrypto)](https://github.com/dlitz/pycrypto). 
 
 ## 改进
 **如果你不小心看到了这里，并且对这个小工具感兴趣，愿意帮助完善的话，那将是一件令人兴奋的事情！ :)**

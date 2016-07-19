@@ -35,6 +35,9 @@ SERVER_CONF_PATH = os.path.join(PYPOSTER_PATH, 'conf.pkl')
 # 指定日志输出路径
 LOG_PATH = os.path.join(PYPOSTER_PATH, 'log.txt')
 
+# 添加小尾巴
+LITTLE_TAIL = '\n\n[——来自 PyPoster，让博客发布更轻松！](https://github.com/ChrisLeeGit/pyposter)'
+
 
 class ServerConfig(object):
     def __init__(self, rpc_address, username, password):
@@ -215,7 +218,7 @@ class PyPoster(object):
         logging.info('构建博客：{}'.format(title))
         post = WordPressPost()
         post.title = title
-        post.content = content
+        post.content = content + LITTLE_TAIL
 
         # 发布状态
         post.post_status = 'publish'
