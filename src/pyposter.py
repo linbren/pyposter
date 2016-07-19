@@ -236,7 +236,7 @@ class PyPoster(object):
         post.content = content + LITTLE_TAIL if not add_copyright else content
 
         # 发布状态
-        post.post_status = 'draft'
+        post.post_status = 'publish'
         self._add_category(category, post)
         self._add_tags(post, tags)
 
