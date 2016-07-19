@@ -38,6 +38,11 @@ LOG_PATH = os.path.join(PYPOSTER_PATH, 'log.txt')
 # 添加小尾巴
 LITTLE_TAIL = '\n\n[——来自 PyPoster，让博客发布更轻松！](https://github.com/ChrisLeeGit/pyposter)'
 
+COPYRIGHT = "\n\n# 版权声明\n" \
+            "1. 本文由 [Christopher L](http://blog.chriscabin.com) 发表，采用 [知识共享署名-非商业性使用-相同方式共享 4.0 国际许" \
+            "可协议](http://creativecommons.org/licenses/by-nc-sa/4.0/) 进行许可。请确保你已了解许可协议，并在 __转载__ 时声明。\n" \
+            "1. 本文固定链接：[{}]({})。\n{}"
+
 
 class ServerConfig(object):
     def __init__(self, rpc_address, username, password):
@@ -116,6 +121,7 @@ class PyPoster(object):
             return self._client.call(GetPost(post_id))
         except Exception as e:
             logging.error(str(e))
+            return None
 
     def post(self, title, category, tags, post_path, add_copyright=True):
 
@@ -152,7 +158,7 @@ class PyPoster(object):
             return None
 
         # 构建博客
-        p = self._build_post(title, category, tags, content)
+        p = self._build_post(title, category, tags, content, add_copyright)
 
         if self._has_post():
             # 博客已经发布过了，此时只要编辑即可
@@ -166,7 +172,8 @@ class PyPoster(object):
             self._post_conf['post_id'] = p.id
 
             # 拿到发布后的博文的 link
-            p.link = self.get_post(p.id)
+            fetched_post = self.get_post(p.id)
+            p.link = fetched_post.link if fetched_post else ''
             self._post_conf['link'] = p.link
 
         if add_copyright:
@@ -222,14 +229,14 @@ class PyPoster(object):
         same_images.extend(list(self._post_conf['posted_images'].values()))
         return same_images
 
-    def _build_post(self, title, category, tags, content):
+    def _build_post(self, title, category, tags, content, add_copyright):
         logging.info('构建博客：{}'.format(title))
         post = WordPressPost()
         post.title = title
-        post.content = content + LITTLE_TAIL
+        post.content = content + LITTLE_TAIL if not add_copyright else content
 
         # 发布状态
-        post.post_status = 'publish'
+        post.post_status = 'draft'
         self._add_category(category, post)
         self._add_tags(post, tags)
 
@@ -268,8 +275,9 @@ class PyPoster(object):
     def _add_copyright(self, post):
         if not post:
             return
-        logging.info('为博文添加版权信息...')
-        post.content = '{}{}'.format()
+        logging.info('为博文添加版权信息')
+        post.content = '{}{}'.format(post.content, COPYRIGHT.format(post.link, post.link, LITTLE_TAIL))
+        self._client.call(EditPost(post.id, post))
 
     def _has_post(self):
         # 如果存在，则返回post_id
