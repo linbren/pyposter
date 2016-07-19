@@ -117,7 +117,7 @@ class PyPoster(object):
         except Exception as e:
             logging.error(str(e))
 
-    def post(self, title, category, tags, post_path):
+    def post(self, title, category, tags, post_path, add_copyright=True):
 
         post_path = os.path.abspath(post_path)
         post_dir = os.path.split(post_path)[0]
@@ -158,11 +158,19 @@ class PyPoster(object):
             # 博客已经发布过了，此时只要编辑即可
             logging.info('开始编辑博客：{}({})'.format(title, self._post_conf['post_id']))
             p.id = self._post_conf['post_id']
+            p.link = self._post_conf['link']
             self._client.call(EditPost(self._post_conf['post_id'], p))
         else:
             logging.info('开始新建博客：{}'.format(title))
             p.id = self._client.call(NewPost(p))
             self._post_conf['post_id'] = p.id
+
+            # 拿到发布后的博文的 link
+            p.link = self.get_post(p.id)
+            self._post_conf['link'] = p.link
+
+        if add_copyright:
+            self._add_copyright(p)
 
         # 记录下文章的标题，分类和标签信息，可能会用到
         self._post_conf['category'] = category
@@ -177,7 +185,7 @@ class PyPoster(object):
         # 切换回原来的工作目录
         os.chdir(old_cwd)
 
-        return p.id
+        return p.link
 
     @staticmethod
     def _process_post_content(content, posted_images):
@@ -257,6 +265,12 @@ class PyPoster(object):
                 term.id = self._client.call(NewTerm(term))
                 post.terms.append(term)
 
+    def _add_copyright(self, post):
+        if not post:
+            return
+        logging.info('为博文添加版权信息...')
+        post.content = '{}{}'.format()
+
     def _has_post(self):
         # 如果存在，则返回post_id
         return True if self._post_conf['post_id'] else False
@@ -285,7 +299,8 @@ class PyPoster(object):
             self._post_conf = load(open(conf_path))
         else:
             self._post_conf = {'post_id': None, 'posted_images': dict(),
-                               'category': '', 'tags': '', 'title': '', 'checksum': ''}
+                               'category': '', 'tags': '', 'title': '',
+                               'checksum': '', 'link': ''}
 
     def _save_post_conf(self, post_dir):
         logging.info('保存博客配置到文件：{}'.format(os.path.join(post_dir, 'post.conf')))
