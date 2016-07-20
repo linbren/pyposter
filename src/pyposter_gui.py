@@ -13,7 +13,7 @@ import os
 import sys
 # from gettext import gettext as _
 import webbrowser
-from tkinter import Frame, LabelFrame, OptionMenu, Listbox, Scrollbar, Button, Entry, Label, Tk, StringVar
+from tkinter import Frame, LabelFrame, OptionMenu, Listbox, Scrollbar, Button, Entry, Label, Tk, StringVar, Radiobutton
 from tkinter.constants import *
 from tkinter.scrolledtext import ScrolledText
 from tkinter.messagebox import showinfo, showerror, askyesno
@@ -27,7 +27,7 @@ sys.path.append(PYPOSTER_PATH)
 
 # 字体配置
 FONT_DEFAULT = ('', 12, 'normal')
-FONT_LOG = ('', 11, 'normal')
+FONT_LOG = ('', 12, 'bold')
 
 
 class OutputFrame(LabelFrame):
@@ -68,8 +68,8 @@ class PyPosterGUI(Frame):
         self._port = StringVar(self)
         self._username = StringVar(self)
         self._password = StringVar(self)
-        self._operation = StringVar(self)
         self._post_path = StringVar(self)
+        self._publish_status = StringVar(self)
         self._category_name = StringVar(self)
         self._pyposter = None
         self._categories = None
@@ -87,7 +87,7 @@ class PyPosterGUI(Frame):
 
         self.make_post_info_frame()
         self.make_server_frame()
-        # self.make_operations_frame()
+        self.make_publish_status_frame()
         self.make_options_frame()
 
         # 三个按钮
@@ -114,7 +114,7 @@ class PyPosterGUI(Frame):
     def make_options_frame(self):
         # 选项
         options_frm = LabelFrame(self._function_frame, text='选项', font=FONT_DEFAULT)
-        options_frm.pack(fill=X)
+        options_frm.pack(fill=X, pady=5)
         # 博客标签
         Label(options_frm, text='标签 (逗号分隔)：', font=FONT_DEFAULT).grid(row=0, column=0, sticky=W, padx=5)
         Entry(options_frm, textvariable=self._tags, font=FONT_DEFAULT, width=30).grid(row=0, column=1, columnspan=2,
@@ -139,13 +139,20 @@ class PyPosterGUI(Frame):
     def make_operations_frame(self):
         # 发布操作
         # 自动，新建博客，编辑博客，新建页面，编辑页面
-        operations_frm = Frame(self._function_frame)
-        operations_frm.pack(fill=X)
-        Label(operations_frm, text='操作：', font=FONT_DEFAULT).pack(side=LEFT)
-        opm = OptionMenu(operations_frm, self._operation, '自动模式', '新建博客', '编辑博客', '新建页面', '编辑页面')
-        opm.config(font=FONT_DEFAULT)
-        opm.pack(side=RIGHT)
-        self._operation.set('自动模式')
+        pass
+
+    def make_publish_status_frame(self):
+        # 发布状态
+        status_frame = LabelFrame(self._function_frame, text='发布状态', font=FONT_DEFAULT)
+        status_frame.pack(fill=X, pady=5)
+
+        Radiobutton(status_frame, variable=self._publish_status, text='草稿',
+                    value='draft', font=FONT_DEFAULT).pack(side=LEFT)
+
+        Radiobutton(status_frame, variable=self._publish_status, text='发布',
+                    value='publish', font=FONT_DEFAULT).pack(side=LEFT)
+
+        self._publish_status.set('draft')
 
     def make_server_frame(self):
         # 服务器信息
@@ -178,7 +185,7 @@ class PyPosterGUI(Frame):
             Entry(info_frm, textvariable=row[1], font=FONT_DEFAULT, width=35).grid(row=index, column=1, sticky=E,
                                                                                    padx=5, pady=2)
 
-    def center_window(self, width=850, height=520):
+    def center_window(self, width=850, height=580):
         screen_width = self.master.winfo_screenwidth()
         screen_height = self.master.winfo_screenheight()
         x = (screen_width / 2) - (width / 2)
@@ -215,6 +222,7 @@ class PyPosterGUI(Frame):
             self._post_title.set(conf['title']) if conf['title'] != '' else None
             self._tags.set(conf['tags']) if conf['tags'] != '' else None
             self._category_name.set(conf['category']) if conf['category'] != '' else None
+            self._publish_status.set(conf['status']) if conf['status'] != '' else None
 
     def _confirm(self):
         if not self._pyposter:
@@ -232,7 +240,8 @@ class PyPosterGUI(Frame):
         link = self._pyposter.post(self._post_title.get(),
                                    self._category_name.get(),
                                    self._tags.get(),
-                                   self._post_path.get())
+                                   self._post_path.get(),
+                                   self._publish_status.get())
         if link != '' and askyesno('提示', '文章发布成功，需要在浏览器中打开吗？'):
             webbrowser.open(link)
 

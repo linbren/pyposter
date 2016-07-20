@@ -123,7 +123,7 @@ class PyPoster(object):
             logging.error(str(e))
             return None
 
-    def post(self, title, category, tags, post_path, add_copyright=True):
+    def post(self, title, category, tags, post_path, status='publish', add_copyright=True):
 
         post_path = os.path.abspath(post_path)
         post_dir = os.path.split(post_path)[0]
@@ -153,12 +153,12 @@ class PyPoster(object):
         content = self._process_post_content(content, posted_images)
 
         # 检查是否确实需要发布
-        if not self._is_post_modified(title, category, tags, content):
+        if not self._is_post_modified(title, category, tags, content, status):
             logging.warning('博客信息未更改，拒绝发布！再见～')
             return ''
 
         # 构建博客
-        p = self._build_post(title, category, tags, content, add_copyright)
+        p = self._build_post(title, category, tags, content, status, add_copyright)
 
         if self._has_post():
             # 博客已经发布过了，此时只要编辑即可
@@ -184,6 +184,7 @@ class PyPoster(object):
         self._post_conf['tags'] = tags
         self._post_conf['title'] = title
         self._post_conf['checksum'] = get_text_checksum(content)
+        self._post_conf['status'] = status
 
         # 最后要保存配置
         self._save_post_conf(post_dir)
@@ -229,14 +230,14 @@ class PyPoster(object):
         same_images.extend(list(self._post_conf['posted_images'].values()))
         return same_images
 
-    def _build_post(self, title, category, tags, content, add_copyright):
+    def _build_post(self, title, category, tags, content, status, add_copyright):
         logging.info('构建博客：{}'.format(title))
         post = WordPressPost()
         post.title = title
         post.content = content + LITTLE_TAIL if not add_copyright else content
 
         # 发布状态
-        post.post_status = 'publish'
+        post.post_status = status
         self._add_category(category, post)
         self._add_tags(post, tags)
 
@@ -275,7 +276,7 @@ class PyPoster(object):
     def _add_copyright(self, post):
         if not post:
             return
-        logging.info('为博文添加版权信息')
+        logging.info('正在为博文添加版权信息，请耐心等待！')
         post.content = '{}{}'.format(post.content, COPYRIGHT.format(post.link, post.link, LITTLE_TAIL))
         self._client.call(EditPost(post.id, post))
 
@@ -308,7 +309,7 @@ class PyPoster(object):
         else:
             self._post_conf = {'post_id': None, 'posted_images': dict(),
                                'category': '', 'tags': '', 'title': '',
-                               'checksum': '', 'link': ''}
+                               'checksum': '', 'link': '', 'status': 'draft'}
 
     def _save_post_conf(self, post_dir):
         logging.info('保存博客配置到文件：{}'.format(os.path.join(post_dir, 'post.conf')))
@@ -323,7 +324,11 @@ class PyPoster(object):
         result = [x[1] for x in images if os.path.exists(x[1])]
         return result
 
-    def _is_post_modified(self, title, category, tags, content):
+    def _is_post_modified(self, title, category, tags, content, status):
+        # 如果状态变化应该发布
+        if self._post_conf['status'] != status:
+            return True
+
         # 检查博客是否发生变动了
         if title != self._post_conf['title']:
             return True
@@ -336,6 +341,8 @@ class PyPoster(object):
 
         if get_text_checksum(content) != self._post_conf['checksum']:
             return True
+
+        return False
 
 
 def main():
