@@ -230,11 +230,11 @@ class PyPosterGUI(Frame):
 
     def _post(self):
         link = self._pyposter.post(self._post_title.get(),
-                                      self._category_name.get(),
-                                      self._tags.get(),
-                                      self._post_path.get())
-        if askyesno('提示', '文章发布成功，需要在浏览器中打开吗？'):
-            webbrowser.open(link) if link != '' else None
+                                   self._category_name.get(),
+                                   self._tags.get(),
+                                   self._post_path.get())
+        if link != '' and askyesno('提示', '文章发布成功，需要在浏览器中打开吗？'):
+            webbrowser.open(link)
 
     def _update_category(self):
         if not self._pyposter:

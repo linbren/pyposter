@@ -139,7 +139,7 @@ class PyPoster(object):
         # 读取博客内容
         content = open(post_path).read()
         if not content:
-            return
+            return ''
 
         logging.info('准备发布博客：{}，请稍等...'.format(title))
 
@@ -155,7 +155,7 @@ class PyPoster(object):
         # 检查是否确实需要发布
         if not self._is_post_modified(title, category, tags, content):
             logging.warning('博客信息未更改，拒绝发布！再见～')
-            return None
+            return ''
 
         # 构建博客
         p = self._build_post(title, category, tags, content, add_copyright)
