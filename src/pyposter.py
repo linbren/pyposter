@@ -124,7 +124,6 @@ class PyPoster(object):
             return None
 
     def post(self, title, category, tags, post_path, status='publish', add_copyright=True):
-
         post_path = os.path.abspath(post_path)
         post_dir = os.path.split(post_path)[0]
 
@@ -321,7 +320,13 @@ class PyPoster(object):
         assert isinstance(content, str)
         # 查找博客文档中所有引用的本地图片，会验证图片的有效性
         images = self._image_re.findall(content)
-        result = [x[1] for x in images if os.path.exists(x[1])]
+        result = list()
+        for x in images:
+            if os.path.exists(x[1]):
+                result.append(x[1])
+            else:
+                logging.error('未找到图片：{}'.format(x[1]))
+
         return result
 
     def _is_post_modified(self, title, category, tags, content, status):
