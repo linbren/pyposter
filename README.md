@@ -17,7 +17,7 @@
 ## 安装 & 运行
 **Note：** 待功能稳定后，可能会发布打包好的版本，这样使用会更加方便。以下是在 Ubuntu 16.04 系统上安装并运行的步骤，其他系统类似。
 
-- 请确保 [下载](https://github.com/ChrisLeeGit/pyposter/releases) 最新的 PyPoster 项目代码；
+- 请确保 [下载](https://github.com/ChrisLeeGit/pyposter/archive/master.zip) 最新的 PyPoster 项目代码；
 - 确保系统安装好 Python 3.x 运行环境；
 - 解压 PyPoster 源码包，并安装其中的 `requirements.txt` 中列出的依赖库：`pip3 install -r requirements.txt`；
 - 进入 `src` 目录，运行 PyPoster：
