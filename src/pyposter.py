@@ -111,10 +111,9 @@ class PyPoster(object):
             logging.error(str(e))
             sys.exit(1)
 
-    def get_category_names(self):
+    def get_categories(self):
         if isinstance(self._client, Client):
-            return list(map(lambda x: x.name,
-                            self._client.call(GetTerms('category'))))
+            return self._client.call(GetTerms('category'))
 
     def get_post(self, post_id):
         try:

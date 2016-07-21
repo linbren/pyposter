@@ -11,11 +11,12 @@
 import json
 import os
 import sys
-# from gettext import gettext as _
 import webbrowser
-from tkinter import Frame, LabelFrame, OptionMenu, Listbox, Scrollbar, Button, Entry, Label, Tk, StringVar, Radiobutton
+from tkinter import Frame, LabelFrame, OptionMenu, Listbox, Scrollbar, Button, Entry, Label, Tk, StringVar, Radiobutton, \
+    TclError
 from tkinter.constants import *
 from tkinter.scrolledtext import ScrolledText
+from tkinter.ttk import Treeview, Style
 from tkinter.messagebox import showinfo, showerror, askyesno
 from tkinter.filedialog import askopenfilename
 from utils import config_logger
@@ -27,13 +28,13 @@ sys.path.append(PYPOSTER_PATH)
 
 # 字体配置
 FONT_DEFAULT = ('', 12, 'normal')
-FONT_LOG = ('', 12, 'bold')
+FONT_LOG = ('', 12, 'normal')
 
 
 class OutputFrame(LabelFrame):
     def __init__(self, master=None, text="日志输出", cnf={}, **kw):
         super().__init__(master, cnf, **kw)
-        self._output = ScrolledText(self, font=FONT_LOG, fg='green')
+        self._output = ScrolledText(self, font=FONT_LOG, fg='blue')
         self._output.pack(fill=BOTH, expand=YES, padx=5)
         self.config(text=text, font=FONT_DEFAULT, padx=5)
         self.pack(side=RIGHT, fill=Y, expand=YES, padx=5, pady=5)
@@ -73,22 +74,22 @@ class PyPosterGUI(Frame):
         self._category_name = StringVar(self)
         self._pyposter = None
         self._categories = None
-        self.make_widgets()
+        self._make_widgets()
         self._load_config()
         self.pack(fill=Y, expand=YES, padx=5, pady=5, side=LEFT)
-        self.center_window()
+        self._center_window()
         self.master.protocol('WM_DELETE_WINDOW', self._on_closing)
 
-    def make_widgets(self):
+    def _make_widgets(self):
         # 左边为功能区，右边为日志显示区
         # 分开布局
         self._function_frame = Frame(self)
         self._function_frame.pack(side=LEFT, fill=Y)
 
-        self.make_post_info_frame()
-        self.make_server_frame()
-        self.make_publish_status_frame()
-        self.make_options_frame()
+        self._make_post_info_frame()
+        self._make_server_frame()
+        self._make_publish_status_frame()
+        self._make_options_frame()
 
         # 三个按钮
         btn_frm = Frame(self._function_frame)
@@ -111,7 +112,7 @@ class PyPosterGUI(Frame):
         sys.stderr = self._output_frame
         sys.stdout = self._output_frame
 
-    def make_options_frame(self):
+    def _make_options_frame(self):
         # 选项
         options_frm = LabelFrame(self._function_frame, text='选项', font=FONT_DEFAULT)
         options_frm.pack(fill=X, pady=5)
@@ -119,8 +120,8 @@ class PyPosterGUI(Frame):
         Label(options_frm, text='标签 (逗号分隔)：', font=FONT_DEFAULT).grid(row=0, column=0, sticky=W, padx=5)
         Entry(options_frm, textvariable=self._tags, font=FONT_DEFAULT, width=30).grid(row=0, column=1, columnspan=2,
                                                                                       sticky=E, padx=5)
-        # 文章分类
-        Label(options_frm, text='文章分类：', font=FONT_DEFAULT).grid(row=1, column=0, sticky=W, padx=5)
+        # 博客分类
+        Label(options_frm, text='博客分类：', font=FONT_DEFAULT).grid(row=1, column=0, sticky=W, padx=5)
         Entry(options_frm, textvariable=self._category_name, width=19, font=FONT_DEFAULT).grid(row=1, column=1, sticky=E)
         Button(options_frm, text='获取分类', font=FONT_DEFAULT, command=self._update_category).grid(row=1,
                                                                                                 column=2,
@@ -131,17 +132,21 @@ class PyPosterGUI(Frame):
 
         vs = Scrollbar(cat_frm)
         vs.pack(side=RIGHT, fill=Y)
-        self._categories = Listbox(cat_frm, width=44, font=FONT_DEFAULT, yscrollcommand=vs.set)
-        self._categories.bind('<<ListboxSelect>>', self._on_item_select)
+        self._categories = Treeview(cat_frm, yscroll=vs.set)
+        self._categories.bind('<ButtonRelease>', self._on_item_select)
         vs.config(command=self._categories.yview)
+        self._categories.heading('#0', text='选择博客分类')
+        self._categories.column('#0', width=400)
+        s = Style()
+        s.configure('.', font=FONT_DEFAULT)
         self._categories.pack(side=LEFT, fill=BOTH, expand=YES)
 
-    def make_operations_frame(self):
+    def _make_operations_frame(self):
         # 发布操作
         # 自动，新建博客，编辑博客，新建页面，编辑页面
         pass
 
-    def make_publish_status_frame(self):
+    def _make_publish_status_frame(self):
         # 发布状态
         status_frame = LabelFrame(self._function_frame, text='发布状态', font=FONT_DEFAULT)
         status_frame.pack(fill=X, pady=5)
@@ -154,7 +159,7 @@ class PyPosterGUI(Frame):
 
         self._publish_status.set('draft')
 
-    def make_server_frame(self):
+    def _make_server_frame(self):
         # 服务器信息
         server_frame = LabelFrame(self._function_frame, text='服务器信息', font=FONT_DEFAULT)
         server_frame.pack(fill=X, pady=5)
@@ -169,8 +174,8 @@ class PyPosterGUI(Frame):
                                                                                                     column=1, sticky=E,
                                                                                                     padx=5, pady=2)
 
-    def make_post_info_frame(self):
-        # 文章标题
+    def _make_post_info_frame(self):
+        # 博客标题
         info_frm = LabelFrame(self._function_frame, text='博客信息', font=FONT_DEFAULT)
         info_frm.pack(side=TOP, fill=X, pady=5)
 
@@ -185,7 +190,7 @@ class PyPosterGUI(Frame):
             Entry(info_frm, textvariable=row[1], font=FONT_DEFAULT, width=35).grid(row=index, column=1, sticky=E,
                                                                                    padx=5, pady=2)
 
-    def center_window(self, width=850, height=580):
+    def _center_window(self, width=850, height=610):
         screen_width = self.master.winfo_screenwidth()
         screen_height = self.master.winfo_screenheight()
         x = (screen_width / 2) - (width / 2)
@@ -231,7 +236,7 @@ class PyPosterGUI(Frame):
         if self._pyposter:
             if not all([self._post_title.get(),
                         self._post_path.get()]):
-                showerror('提示', '博客文章信息不完整，至少需要合法的博客路径！')
+                showerror('提示', '博客博客信息不完整，至少需要合法的博客路径！')
                 return
             # 在后台线程中执行操作
             threading.Thread(target=self._post, daemon=True).start()
@@ -242,7 +247,7 @@ class PyPosterGUI(Frame):
                                    self._tags.get(),
                                    self._post_path.get(),
                                    self._publish_status.get())
-        if link != '' and askyesno('提示', '文章发布成功，需要在浏览器中打开吗？'):
+        if link != '' and askyesno('提示', '博客发布成功，需要在浏览器中打开吗？'):
             webbrowser.open(link)
 
     def _update_category(self):
@@ -250,9 +255,21 @@ class PyPosterGUI(Frame):
             self._init_pyposter()
 
         if self._pyposter:
-            self._categories.delete(0, END)
-            for name in self._pyposter.get_category_names():
-                self._categories.insert('end', name)
+            # 删除旧的分类信息
+            self._categories.delete(*self._categories.get_children())
+            cates = self._pyposter.get_categories()
+            logging.info('成功获取到分类：{} 个。'.format(len(cates)))
+            while len(cates) > 0:
+                # 每次成功添加一个节点，就把它从原来的表中移除，这样下次遍历时就会更快点，直到最后一个节点添加完毕。
+                for cate in cates:
+                    try:
+                        if cate.parent == '0':
+                            self._categories.insert('', 'end', cate.id, text=cate.name, open=True)
+                        else:
+                            self._categories.insert(cate.parent, 'end', cate.id, text=cate.name, open=True)
+                        cates.remove(cate)
+                    except TclError:
+                        pass
 
     def _init_pyposter(self):
         if not self._is_server_info_valid():
@@ -288,7 +305,8 @@ class PyPosterGUI(Frame):
 
     def _get_selected_category(self):
         try:
-            return self._categories.get(self._categories.curselection())
+            focus_item = self._categories.focus()
+            return self._categories.item(focus_item)['text']
         except: return ''
 
     def _on_item_select(self, event):
@@ -301,14 +319,17 @@ class PyPosterGUI(Frame):
 def main():
 
     app = Tk()
-    app.title('PyPoster，博客发布小工具')
+    app.title('PyPoster, 博客发布小工具 (By Christopher L)。')
     app.resizable(width=False, height=False)
 
     # 左边是功能区
     PyPosterGUI(app)
 
     config_logger(LOG_PATH)
-    logging.info('启动 PyPoster ...')
+    logging.info('欢迎使用 PyPoster!')
+    logging.info('详细的帮助文档请参见 README.md。')
+    logging.info('Bug 反馈请访问项目主页：https://github.com/chrisleegit/pyposter。')
+    logging.info('')
     app.mainloop()
 
 
